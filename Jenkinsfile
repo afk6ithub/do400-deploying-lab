@@ -8,56 +8,29 @@ pipeline {
     }
 
     parameters {
+        // Optional parameter for frontend tests (not used here)
         booleanParam(name: "RUN_FRONTEND_TESTS", defaultValue: true)
     }
 
     stages {
 
-        // Prepare environment (install Node.js once)
-        stage('Prepare Environment') {
+        // Run Maven tests
+        stage("Test") {
             steps {
-                sh '''
-                # Install Node.js once
-                curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-                yum install -y nodejs
-                node -v
-                npm -v
-                '''
-            }
-        }
-
-        // Run backend and frontend tests in parallel
-        stage('Run Tests') {
-            parallel {
-
-                stage('Backend Tests') {
-                    steps {
-                        sh 'node ./backend/test.js'
-                    }
-                }
-
-                stage('Frontend Tests') {
-                    when { 
-                        expression { params.RUN_FRONTEND_TESTS } 
-                    }
-                    steps {
-                        sh 'node ./frontend/test.js'
-                    }
-                }
-
+                sh "./mvnw verify"
             }
         }
 
         // Build and push container image to Quay.io
         stage('Build & Push Image') {
             steps {
-                // Add Jib extension
+                // Add Jib extension to Quarkus project
                 sh './mvnw quarkus:add-extension -Dextensions="container-image-jib"'
 
                 // Build and push image
                 sh '''
                 ./mvnw package -DskipTests \
-                  -Dquarkus.jib.base-jvm-imagee=quay.io/redhattraining/do400-java-alpine-openjdk11-jre:latest \
+                  -Dquarkus.jib.base-jvm-image=quay.io/redhattraining/do400-java-alpine-openjdk11-jre:latest \
                   -Dquarkus.container-image.build=true \
                   -Dquarkus.container-image.registry=quay.io \
                   -Dquarkus.container-image.group=$QUAY_USR \
@@ -65,13 +38,13 @@ pipeline {
                   -Dquarkus.container-image.username=$QUAY_USR \
                   -Dquarkus.container-image.password="$QUAY_PSW" \
                   -Dquarkus.container-image.tag=build-${BUILD_NUMBER} \
-                  -Dquarkus.container-imaaaaaaaaaaaage.additional-tags=latest \
+                  -Dquarkus.container-image.additional-tags=latest \
                   -Dquarkus.container-image.push=true
                 '''
             }
         }
 
-        // Deploy stage with user input
+        // Deploy stage with input
         stage('Deploy') {
             when {
                 expression { env.GIT_BRANCH == 'origin/main' }
