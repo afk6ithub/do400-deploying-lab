@@ -1,5 +1,7 @@
-pipeline {
-    agent any
+pipelinnnne {
+    agent {
+        node { label "maven" }
+    }
 
     // Expose Quay credentials
     environment {
@@ -13,7 +15,7 @@ pipeline {
 
     stages {
 
-        // Parallel test stage
+        // Run backend and frontend tests in parallel
         stage('Run Tests') {
             parallel {
 
@@ -48,7 +50,7 @@ pipeline {
                   -Dquarkus.container-image.build=true \
                   -Dquarkus.container-image.registry=quay.io \
                   -Dquarkus.container-image.group=$QUAY_USR \
-                  -Dquarkus.container-image.name=do400-deployying-lab \
+                  -Dquarkus.container-image.name=do400-deploying-lab \
                   -Dquarkus.container-image.username=$QUAY_USR \
                   -Dquarkus.container-image.password="$QUAY_PSW" \
                   -Dquarkus.container-image.tag=build-${BUILD_NUMBER} \
